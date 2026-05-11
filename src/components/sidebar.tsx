@@ -1,8 +1,4 @@
-"use client"
-
-import Image from "next/image"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Link, useRouterState } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
@@ -19,11 +15,11 @@ import {
 import { useState, useEffect } from "react"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/devices", label: "Devices", icon: Smartphone },
-  { href: "/wifi", label: "WiFi", icon: Wifi },
-  { href: "/cell", label: "Cell Info", icon: Radio },
-  { href: "/system", label: "System", icon: Settings },
+  { to: "/" as const, label: "Dashboard", icon: LayoutDashboard },
+  { to: "/devices" as const, label: "Devices", icon: Smartphone },
+  { to: "/wifi" as const, label: "WiFi", icon: Wifi },
+  { to: "/cell" as const, label: "Cell Info", icon: Radio },
+  { to: "/system" as const, label: "System", icon: Settings },
 ]
 
 interface SidebarProps {
@@ -32,7 +28,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) {
-  const pathname = usePathname()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [isDark, setIsDark] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
 
@@ -40,7 +36,6 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
     const isDarkMode = document.documentElement.classList.contains("dark")
     setIsDark(isDarkMode)
 
-    // Load collapsed state from localStorage
     const savedCollapsed = localStorage.getItem("sidebar-collapsed")
     if (savedCollapsed !== null) {
       const newCollapsed = savedCollapsed === "true"
@@ -63,7 +58,7 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/router/logout", { method: "POST" })
+      await fetch("/api/router/logout", { method: "POST", credentials: "include" })
     } catch {
       // Ignore errors
     }
@@ -77,7 +72,6 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
         isCollapsed ? "w-[72px]" : "w-52"
       )}
     >
-      {/* Logo */}
       <div
         className={cn(
           "flex items-center border-b border-white/10 transition-all duration-300",
@@ -85,27 +79,18 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
         )}
       >
         <div className={cn("flex items-center", isCollapsed ? "gap-0" : "gap-3")}>
-          <Image
-            src="/logo.svg"
-            alt="5G Gateway"
-            width={40}
-            height={40}
-            className="flex-shrink-0"
-          />
-          {!isCollapsed && (
-            <h1 className="font-bold text-lg text-white">G5AR Portal</h1>
-          )}
+          <img src="/logo.svg" alt="5G Gateway" width={40} height={40} className="flex-shrink-0" />
+          {!isCollapsed && <h1 className="font-bold text-lg text-white">G5AR Portal</h1>}
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.to
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.to}
+              to={item.to}
               className={cn(
                 "sidebar-item group relative",
                 isActive && "sidebar-item-active",
@@ -115,7 +100,6 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
               {!isCollapsed && <span className="font-medium">{item.label}</span>}
-              {/* Tooltip for collapsed mode */}
               {isCollapsed && (
                 <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
                   {item.label}
@@ -127,9 +111,7 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
         })}
       </nav>
 
-      {/* Footer */}
       <div className="px-3 py-4 border-t border-white/10 space-y-1">
-        {/* Dark mode toggle */}
         <button
           onClick={toggleDarkMode}
           className={cn(
@@ -152,7 +134,6 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
           )}
         </button>
 
-        {/* Collapse toggle */}
         <button
           onClick={toggleCollapsed}
           className={cn(
@@ -177,7 +158,6 @@ export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) 
           )}
         </button>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           className={cn(

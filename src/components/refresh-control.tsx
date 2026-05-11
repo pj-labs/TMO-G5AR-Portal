@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Play, Pause, WifiOff } from "lucide-react"

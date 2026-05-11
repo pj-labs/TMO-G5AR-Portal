@@ -1,45 +1,37 @@
-"use client"
-
 import useSWR from "swr"
+import type { TelemetryAll, VersionInfo } from "@/lib/router-types"
 
-// Track if we're already redirecting to prevent multiple redirects
 let isRedirecting = false
 
 async function handleUnauthorized() {
   if (isRedirecting) return
   isRedirecting = true
 
-  // Clear cookies on server and wait for response
   try {
     const response = await fetch("/api/router/logout", {
       method: "POST",
-      credentials: "same-origin", // Ensure cookies are sent and received
+      credentials: "include",
     })
-    // Wait for the response to ensure cookies are cleared
     await response.json()
   } catch {
     // Ignore errors, proceed to redirect
   }
 
-  // Small delay to ensure cookies are processed by browser
-  await new Promise(resolve => setTimeout(resolve, 100))
-
-  // Use replace to prevent back button issues
+  await new Promise((resolve) => setTimeout(resolve, 100))
   window.location.replace("/login")
 }
 
 const fetcher = async (url: string) => {
-  // Don't fetch if we're already redirecting
   if (isRedirecting) {
     return new Promise(() => {})
   }
 
   const res = await fetch(url, {
     cache: "no-store",
+    credentials: "include",
     headers: { "Cache-Control": "no-cache" },
   })
 
-  // Check for 401 status before parsing JSON
   if (res.status === 401) {
     handleUnauthorized()
     return new Promise(() => {})
@@ -47,7 +39,6 @@ const fetcher = async (url: string) => {
 
   const data = await res.json()
 
-  // Also check for auth error in response body
   if (data.error === "Not authenticated") {
     handleUnauthorized()
     return new Promise(() => {})
@@ -110,88 +101,16 @@ export function useApConfig() {
   })
 }
 
-export interface VersionInfo {
-  version: number
-}
-
 export function useVersion() {
   return useSWR<VersionInfo>("/api/router/version", fetcher, {
-    refreshInterval: 60000, // Check every minute
+    refreshInterval: 60000,
   })
 }
 
-export interface TelemetryAll {
-  cell: {
-    "5g": {
-      cqi: number
-      ecgi: string
-      sector: {
-        antennaUsed: string
-        bands: string[]
-        bars: number
-        cid: number
-        gNBID: number
-        rsrp: number
-        rsrq: number
-        rssi: number
-        sinr: number
-      }
-    }
-    generic: {
-      apn: string
-      hasIPv6: boolean
-      registration: string
-    }
-    gps: {
-      latitude: number
-      longitude: number
-    }
-  }
-  clients: {
-    "2.4ghz": Array<{
-      connected: boolean
-      ipv4: string
-      ipv6: string[]
-      mac: string
-      name: string
-      signal?: number
-    }>
-    "5.0ghz": Array<{
-      connected: boolean
-      ipv4: string
-      ipv6: string[]
-      mac: string
-      name: string
-      signal?: number
-    }>
-    ethernet: Array<{
-      connected: boolean
-      ipv4: string
-      ipv6: string[]
-      mac: string
-      name: string
-    }>
-    wifi: Array<{
-      connected: boolean
-      ipv4: string
-      ipv6: string[]
-      mac: string
-      name: string
-      signal?: number
-    }>
-  }
-  sim: {
-    iccId: string
-    imei: string
-    imsi: string
-    msisdn: string
-    status: boolean
-  }
-}
-
-// Combined telemetry hook - fetches cell, clients, and sim in one call
 export function useTelemetryAll() {
   return useSWR<TelemetryAll>("/api/router/telemetry", fetcher, {
     refreshInterval: 5000,
   })
 }
+
+export type { VersionInfo, TelemetryAll }

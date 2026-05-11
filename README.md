@@ -1,6 +1,6 @@
 # TMO-G5AR Portal
 
-A modern web admin interface for the T-Mobile Arcadyan G5AR 5G Gateway, built with Next.js and shadcn/ui.
+A modern web admin interface for the T-Mobile Arcadyan G5AR 5G Gateway, built with Vite, TanStack Router, and shadcn/ui.
 
 [![GitHub](https://img.shields.io/badge/GitHub-rchen14b-181717?style=flat&logo=github)](https://github.com/rchen14b/TMO-G5AR-Portal)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?style=flat&logo=buy-me-a-coffee)](https://buymeacoffee.com/rchen14b)
@@ -43,7 +43,8 @@ Gateway information, system status, and quick actions like reboot.
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **SPA**: Vite + React 18 + [TanStack Router](https://tanstack.com/router)
+- **API proxy**: Hono on Node (`/api/router/*`, httpOnly cookies, same-origin from the UI)
 - **UI Components**: shadcn/ui
 - **Styling**: Tailwind CSS
 - **Charts**: Recharts
@@ -69,13 +70,22 @@ Gateway information, system status, and quick actions like reboot.
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
-# Run development server
-npm run dev
+# Run API (port 3000) + Vite dev server (port 5173) together
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the portal.
+Open [http://localhost:5173](http://localhost:5173) in your browser. The Vite dev server proxies `/api` to the Hono server on port 3000 so cookies and same-origin `fetch("/api/router/...")` behave like production.
+
+For production-style single port after a build:
+
+```bash
+pnpm build
+PORT=3000 pnpm start
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
 
 Login with your gateway credentials (found on the label of your device). The default username is `admin` and the default gateway IP is `192.168.12.1`.
 
@@ -135,24 +145,21 @@ docker compose up -d
 ## Project Structure
 
 ```
+server/
+├── index.ts              # Hono app: /api/router/* + static SPA in production
+└── router-api.ts         # Server-side gateway proxy (cookies → LAN HTTP)
+
 src/
-├── app/
-│   ├── api/router/       # API routes proxying to gateway
-│   ├── (dashboard)/      # Main dashboard page
-│   ├── devices/          # Connected devices page
-│   ├── wifi/             # WiFi settings page
-│   ├── cell/             # Cell/5G info page
-│   └── system/           # System controls page
+├── routes/               # TanStack Router file routes (see routeTree.gen.ts)
+├── pages/                # Page-level React components
 ├── components/
 │   ├── ui/               # shadcn/ui components
-│   ├── signal-gauge.tsx  # Signal strength visualization
-│   ├── device-table.tsx  # Connected devices table
 │   └── ...
 ├── lib/
-│   ├── router-api.ts     # Router API client
-│   └── utils.ts          # Utility functions
+│   ├── router-types.ts   # Shared TypeScript types for gateway JSON
+│   └── utils.ts
 └── hooks/
-    └── use-router-data.ts # SWR hooks for router data
+    └── use-router-data.ts
 ```
 
 ## License
